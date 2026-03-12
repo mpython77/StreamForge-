@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamForge — Video Processing Framework</title>
+    <meta name="description" content="Powerful framework for converting video files to HLS streaming format">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">&#9889;</span>
+                <h1>StreamForge</h1>
+            </div>
+            <p class="tagline">Video &#8594; HLS Streaming | Production-Grade</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Step 1: Upload -->
+        <section id="step-upload" class="card step active">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <h2>Upload Video</h2>
+            </div>
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <div class="upload-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <p class="drop-text">Drag and drop your video here</p>
+                    <p class="drop-subtext">or click — MP4, MOV, AVI, MKV, WebM, FLV, M4V</p>
+                    <input type="file" id="file-input" accept="video/*" hidden>
+                </div>
+                <div id="upload-progress" class="upload-progress hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="upload-fill"></div>
+                    </div>
+                    <p id="upload-status">Uploading...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 2: Settings -->
+        <section id="step-settings" class="card step hidden">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <h2>Settings</h2>
+            </div>
+
+            <!-- Video Info -->
+            <div class="video-info-panel">
+                <div id="thumbnail-preview" class="thumbnail-preview">
+                    <video id="preview-video" muted></video>
+                </div>
+                <div class="video-meta">
+                    <h3 id="video-filename">video.mp4</h3>
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">Resolution</span>
+                            <span class="meta-value" id="meta-resolution">—</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Duration</span>
+                            <span class="meta-value" id="meta-duration">—</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Size</span>
+                            <span class="meta-value" id="meta-size">—</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">FPS</span>
+                            <span class="meta-value" id="meta-fps">—</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Codec</span>
+                            <span class="meta-value" id="meta-codec">—</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Audio</span>
+                            <span class="meta-value" id="meta-audio">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality Analysis Banner -->
+            <div id="quality-analysis" class="quality-analysis hidden">
+                <div class="qa-header">
+                    <span class="qa-icon" id="qa-icon"></span>
+                    <div class="qa-title">
+                        <h4 id="qa-category">—</h4>
+                        <p id="qa-original">—</p>
+                    </div>
+                </div>
+                <div class="qa-stats">
+                    <div class="qa-stat"><span class="qa-stat-label">Max Quality</span><span class="qa-stat-value" id="qa-max">—</span></div>
+                    <div class="qa-stat"><span class="qa-stat-label">Min Quality</span><span class="qa-stat-value" id="qa-min">—</span></div>
+                    <div class="qa-stat"><span class="qa-stat-label">Aspect</span><span class="qa-stat-value" id="qa-ratio">—</span></div>
+                    <div class="qa-stat"><span class="qa-stat-label">Orientation</span><span class="qa-stat-value" id="qa-orient">—</span></div>
+                    <div class="qa-stat"><span class="qa-stat-label">Est. Size</span><span class="qa-stat-value" id="qa-size">—</span></div>
+                    <div class="qa-stat"><span class="qa-stat-label">Recommended</span><span class="qa-stat-value" id="qa-count">—</span></div>
+                </div>
+                <div class="qa-recommend" id="qa-recommend-text"></div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="settings-panel">
+
+                <!-- Qualities -->
+                <div class="settings-group">
+                    <h4>&#128208; Qualities <span class="auto-badge" id="auto-badge">AUTO</span></h4>
+                    <p class="settings-hint">Recommended qualities are auto-selected</p>
+                    <div id="quality-options" class="quality-grid"></div>
+                </div>
+
+                <!-- Encoding Preset -->
+                <div class="settings-group">
+                    <h4>&#9881;&#65039; Encoding Preset</h4>
+                    <p class="settings-hint">Speed vs quality balance</p>
+                    <div id="preset-options" class="preset-grid"></div>
+                </div>
+
+                <!-- Segment Duration -->
+                <div class="settings-group">
+                    <h4>&#9201;&#65039; Segment Duration</h4>
+                    <div class="segment-options">
+                        <label class="radio-card"><input type="radio" name="segment" value="2"> <span>2s</span><small>Low latency</small></label>
+                        <label class="radio-card active"><input type="radio" name="segment" value="4" checked> <span>4s</span><small>Recommended</small></label>
+                        <label class="radio-card"><input type="radio" name="segment" value="6"> <span>6s</span><small>Stable</small></label>
+                        <label class="radio-card"><input type="radio" name="segment" value="10"> <span>10s</span><small>Fewer seg</small></label>
+                    </div>
+                </div>
+
+                <!-- Video Trimming -->
+                <div class="settings-group">
+                    <h4>&#9986;&#65039; Video Trimming</h4>
+                    <p class="settings-hint">Set start and end time (seconds)</p>
+                    <div class="trim-controls">
+                        <div class="trim-input">
+                            <label>Start</label>
+                            <input type="number" id="trim-start" value="0" min="0" step="0.1" class="hw-select">
+                        </div>
+                        <div class="trim-input">
+                            <label>End</label>
+                            <input type="number" id="trim-end" value="0" min="0" step="0.1" class="hw-select">
+                        </div>
+                        <div class="trim-info" id="trim-info">Full video</div>
+                    </div>
+                </div>
+
+                <!-- Hardware -->
+                <div class="settings-group hardware-panel" id="hardware-panel">
+                    <h4>&#9889; Hardware Acceleration <span class="hw-mode-badge" id="hw-mode-badge">...</span></h4>
+                    <div id="hw-loading" class="hw-loading">
+                        <div class="spinner-small"></div>
+                        <span>Detecting hardware...</span>
+                    </div>
+                    <div id="hw-info" class="hw-info hidden">
+                        <div class="hw-cards">
+                            <div class="hw-card">
+                                <span class="hw-card-icon">&#128421;&#65039;</span>
+                                <div class="hw-card-body">
+                                    <span class="hw-card-label">CPU</span>
+                                    <span class="hw-card-value" id="hw-cpu-name">—</span>
+                                    <span class="hw-card-sub" id="hw-cpu-cores">—</span>
+                                </div>
+                            </div>
+                            <div class="hw-card" id="hw-gpu-card">
+                                <span class="hw-card-icon">&#127918;</span>
+                                <div class="hw-card-body">
+                                    <span class="hw-card-label">GPU</span>
+                                    <span class="hw-card-value" id="hw-gpu-name">—</span>
+                                    <span class="hw-card-sub" id="hw-gpu-status">—</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hw-control"><label>Encoder</label>
+                            <select id="hw-encoder" class="hw-select"><option value="libx264">&#128421; CPU — libx264</option></select>
+                        </div>
+                        <div class="hw-control" id="threads-control"><label>CPU Threads: <strong id="threads-value">Auto</strong></label>
+                            <input type="range" id="hw-threads" min="0" max="16" value="0" class="hw-slider">
+                        </div>
+                        <div class="hw-control"><label class="checkbox-card hw-parallel-toggle">
+                            <input type="checkbox" id="hw-parallel"><span>&#9889; Parallel transcode</span></label>
+                        </div>
+                        <div class="hw-control" id="parallel-control"><label>Workers: <strong id="parallel-value">2</strong></label>
+                            <input type="range" id="hw-max-parallel" min="1" max="4" value="2" class="hw-slider">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pro Features -->
+                <div class="settings-group">
+                    <h4>&#128142; Pro Features</h4>
+                    <div class="pro-features-grid">
+                        <div class="hw-control">
+                            <label>Codec</label>
+                            <select id="pro-codec" class="hw-select">
+                                <option value="libx264">H.264 (AVC) — Universal</option>
+                                <option value="libx265">H.265 (HEVC) — 40% smaller</option>
+                            </select>
+                        </div>
+                        <div class="hw-control">
+                            <label class="checkbox-card">
+                                <input type="checkbox" id="pro-encrypt">
+                                <span>&#128274; AES-128 Encryption</span>
+                            </label>
+                        </div>
+                        <div class="hw-control">
+                            <label class="checkbox-card">
+                                <input type="checkbox" id="pro-subtitles" checked>
+                                <span>&#128172; Subtitle Extract</span>
+                            </label>
+                        </div>
+                        <div class="hw-control">
+                            <label class="checkbox-card">
+                                <input type="checkbox" id="pro-sprites" checked>
+                                <span>&#127916; Timeline Sprites</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio -->
+                <div class="settings-group">
+                    <h4>&#127911; Audio Settings</h4>
+                    <div class="audio-controls">
+                        <div class="hw-control"><label>Audio bitrate</label>
+                            <select id="audio-bitrate" class="hw-select">
+                                <option value="">Auto (based on preset)</option>
+                                <option value="96k">96 kbps — Low</option>
+                                <option value="128k">128 kbps — Standard</option>
+                                <option value="192k">192 kbps — Good</option>
+                                <option value="256k">256 kbps — High</option>
+                                <option value="320k">320 kbps — Maximum</option>
+                            </select>
+                        </div>
+                        <label class="checkbox-card">
+                            <input type="checkbox" id="audio-normalize">
+                            <span>&#128266; Audio Normalization (loudnorm)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Extra -->
+                <div class="settings-group">
+                    <h4>&#128444;&#65039; Additional</h4>
+                    <label class="checkbox-card">
+                        <input type="checkbox" id="gen-thumbnail" checked>
+                        <span>Auto-generate thumbnails (4)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Estimate Panel -->
+            <div id="estimate-panel" class="estimate-panel hidden">
+                <div class="est-header">
+                    <h4>&#128202; Estimate</h4>
+                    <span class="est-mode" id="est-mode">—</span>
+                </div>
+                <div class="est-summary">
+                    <div class="est-card main">
+                        <span class="est-card-label">Estimated Time</span>
+                        <span class="est-card-value" id="est-time">—</span>
+                    </div>
+                    <div class="est-card">
+                        <span class="est-card-label">Output Size</span>
+                        <span class="est-card-value" id="est-size">—</span>
+                    </div>
+                    <div class="est-card">
+                        <span class="est-card-label">Compression</span>
+                        <span class="est-card-value" id="est-compress">—</span>
+                    </div>
+                </div>
+                <table class="est-table">
+                    <thead><tr><th>Quality</th><th>Bitrate</th><th>Time</th><th>Size</th></tr></thead>
+                    <tbody id="est-qualities"></tbody>
+                </table>
+            </div>
+
+            <button id="btn-process" class="btn-primary" disabled>
+                <span class="btn-icon">&#128640;</span>
+                <span>Start Processing</span>
+            </button>
+        </section>
+
+        <!-- Step 3: Processing -->
+        <section id="step-processing" class="card step hidden">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <h2>Processing</h2>
+            </div>
+            <div class="processing-panel">
+                <div class="processing-visual">
+                    <div class="spinner"></div>
+                    <span class="percent-text" id="process-percent">0%</span>
+                </div>
+                <div class="progress-bar large">
+                    <div class="progress-fill gradient" id="process-fill"></div>
+                </div>
+                <div class="proc-time-bar">
+                    <div class="proc-time-item">
+                        <span class="proc-time-label">Elapsed</span>
+                        <span class="proc-time-value" id="proc-elapsed">00:00</span>
+                    </div>
+                    <div class="proc-time-item">
+                        <span class="proc-time-label">Estimated</span>
+                        <span class="proc-time-value" id="proc-est-time">—</span>
+                    </div>
+                    <div class="proc-time-item">
+                        <span class="proc-time-label">Remaining</span>
+                        <span class="proc-time-value accent" id="proc-eta">—</span>
+                    </div>
+                    <div class="proc-time-item">
+                        <span class="proc-time-label">Output</span>
+                        <span class="proc-time-value" id="proc-est-size">—</span>
+                    </div>
+                </div>
+                <p class="process-status" id="process-status">Preparing...</p>
+                <div class="process-steps" id="process-steps"></div>
+                <button id="btn-cancel" class="btn-secondary hidden" style="margin-top:1rem;background:#ef4444;border:none;color:white;padding:0.7rem 2rem;border-radius:8px;cursor:pointer;font-size:0.95rem;">Cancel</button>
+            </div>
+        </section>
+
+        <!-- Step 4: Result -->
+        <section id="step-result" class="card step hidden">
+            <div class="step-header">
+                <span class="step-number">4</span>
+                <h2>Result</h2>
+            </div>
+            <div class="player-container">
+                <video id="hls-player" controls playsinline></video>
+            </div>
+
+            <!-- Stats -->
+            <div class="result-stats" id="result-stats"></div>
+
+            <div class="result-info">
+                <div class="result-meta" id="result-meta"></div>
+                <div class="result-url">
+                    <label>HLS Manifest URL</label>
+                    <div class="url-copy">
+                        <code id="manifest-url">—</code>
+                        <button class="btn-small" id="btn-copy">&#128203;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="result-actions">
+                <button id="btn-download" class="btn-primary">
+                    <span>&#128229; Download (ZIP)</span>
+                </button>
+                <button id="btn-r2-upload" class="btn-secondary" style="background:linear-gradient(135deg,#f38020,#f6821f);">
+                    <span>☁️ Upload to R2</span>
+                </button>
+                <button id="btn-new" class="btn-secondary">
+                    <span>&#10133; New Video</span>
+                </button>
+            </div>
+            <div id="r2-upload-status" class="r2-status hidden"></div>
+        </section>
+        <!-- R2 Cloud Settings -->
+
+        <!-- Batch Upload -->
+        <section id="step-batch" class="card step">
+            <div class="step-header">
+                <span class="step-number">📦</span>
+                <h2>Batch Upload & Auto-Process</h2>
+            </div>
+            <div class="batch-container">
+                <p class="settings-hint">Upload 1-20 videos at once. They'll be processed sequentially.</p>
+
+                <div class="batch-dropzone" id="batch-dropzone">
+                    <div style="text-align:center;padding:2rem;">
+                        <div style="font-size:2.5rem;margin-bottom:0.5rem;">📁</div>
+                        <p style="font-size:1.1rem;color:var(--text-primary);margin:0;">Drop multiple videos here</p>
+                        <p style="color:var(--text-secondary);font-size:0.85rem;">or click to select — MP4, MOV, AVI, MKV, WebM</p>
+                    </div>
+                    <input type="file" id="batch-file-input" multiple accept=".mp4,.mov,.avi,.mkv,.webm,.flv,.wmv,.m4v,.ts,.3gp" style="display:none;">
+                </div>
+
+                <!-- Batch settings -->
+                <div class="batch-settings" id="batch-settings" style="display:none;margin-top:1rem;">
+                    <div class="r2-fields">
+                        <div class="r2-field">
+                            <label>Quality</label>
+                            <select id="batch-quality" class="hw-select">
+                                <option value="720p,480p,360p">720p + 480p + 360p</option>
+                                <option value="1080p,720p,480p">1080p + 720p + 480p</option>
+                                <option value="1080p,720p,480p,360p">Full (1080-360p)</option>
+                                <option value="720p">720p only</option>
+                                <option value="480p">480p only</option>
+                            </select>
+                        </div>
+                        <div class="r2-field">
+                            <label>Preset</label>
+                            <select id="batch-preset" class="hw-select">
+                                <option value="balanced">Balanced</option>
+                                <option value="fast">Fast</option>
+                                <option value="quality">Quality</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="batch-file-list" style="margin-top:1rem;"></div>
+
+                    <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+                        <button id="btn-batch-start" class="btn-primary" style="flex:1;">
+                            🚀 Start Batch Processing
+                        </button>
+                        <button id="btn-batch-cancel" class="btn-secondary hidden" style="background:#ef4444;border:none;color:white;padding:0.7rem 1.5rem;border-radius:8px;cursor:pointer;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Batch progress -->
+                <div id="batch-progress" style="display:none;margin-top:1rem;">
+                    <div class="process-bar-container">
+                        <div class="process-bar-fill" id="batch-bar-fill" style="width:0%"></div>
+                    </div>
+                    <p class="process-status" id="batch-status-text">Uploading...</p>
+                    <div id="batch-items-status" style="margin-top:0.75rem;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- R2 Cloud Settings -->
+        <section id="step-r2" class="card step">
+            <div class="step-header">
+                <span class="step-number">☁️</span>
+                <h2>Cloudflare R2 Storage</h2>
+            </div>
+            <div class="r2-config">
+                <p class="settings-hint">Get credentials from Cloudflare Dashboard → R2 → API Tokens. <a href="https://dash.cloudflare.com" target="_blank">Cloudflare Dashboard</a></p>
+                <div class="r2-fields">
+                    <div class="r2-field">
+                        <label>Account ID</label>
+                        <input type="text" id="r2-account-id" class="hw-select" placeholder="Your Cloudflare Account ID">
+                    </div>
+                    <div class="r2-field">
+                        <label>Access Key ID</label>
+                        <input type="text" id="r2-access-key" class="hw-select" placeholder="R2 Access Key ID">
+                    </div>
+                    <div class="r2-field">
+                        <label>Secret Access Key</label>
+                        <input type="password" id="r2-secret-key" class="hw-select" placeholder="R2 Secret Access Key">
+                    </div>
+                    <div class="r2-field">
+                        <label>Bucket Name</label>
+                        <input type="text" id="r2-bucket" class="hw-select" placeholder="my-bucket">
+                    </div>
+                    <div class="r2-field">
+                        <label>Public URL (optional)</label>
+                        <input type="text" id="r2-public-url" class="hw-select" placeholder="https://pub-xxx.r2.dev">
+                    </div>
+                </div>
+                <div class="r2-actions">
+                    <button id="btn-r2-save" class="btn-primary" style="width:auto;padding:0.7rem 2rem;">
+                        💾 Save & Connect
+                    </button>
+                    <span id="r2-connection-status" class="r2-conn-badge">—</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>StreamForge — ffmpeg-python + FastAPI | Production-Grade</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

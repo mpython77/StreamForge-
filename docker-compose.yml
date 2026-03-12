@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════
+# StreamForge v3.0 — Docker Compose
+# ═══════════════════════════════════════════════════════════
+# Usage:
+#   docker compose up -d          # Start
+#   docker compose logs -f        # View logs
+#   docker compose down           # Stop
+# ═══════════════════════════════════════════════════════════
+
+services:
+  streamforge:
+    build: .
+    container_name: streamforge
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist data outside container
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 4G    # Limit RAM for large video processing
+        reservations:
+          memory: 512M
